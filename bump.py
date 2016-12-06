@@ -93,6 +93,7 @@ def main(input, output, **kwargs):
   version_string = first(re.findall(pattern, contents))[1]
   version = SemVer.parse(version_string)
   version.bump(**kwargs)
+  output.write(re.sub(pattern, r"\g<1>{}\g<3>".format(version), contents))
   click.echo(version)
 
 
