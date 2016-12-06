@@ -65,25 +65,24 @@ class SemVer(object):
       build=build,
     )
 
-  def bump(self, **kwargs):
-    number = kwargs.get('number')
-    if number == 'major':
+  def bump(self, major, minor, patch, pre=None, build=None, **kwargs):
+    if major:
       self.major += 1
-    elif number == 'minor':
+    elif minor:
       self.minor += 1
-    elif number == 'patch':
+    elif patch:
       self.patch += 1
-    self.pre = kwargs.get('pre')
-    self.build = kwargs.get('build')
+    self.pre = pre
+    self.build = build
 
 
 @click.command()
-@click.option('--major', '-M', 'number', flag_value='major',
-              help="Bump major number")
-@click.option('--minor', '-m', 'number', flag_value='minor',
-              help="Bump minor number")
-@click.option('--patch', '-p', 'number', flag_value='patch',
-              help="Bump patch number")
+@click.option('--major', '-M', 'major', flag_value=True,
+              help="Bump major number", default=False)
+@click.option('--minor', '-m', 'minor', flag_value=True,
+              help="Bump minor number", default=False)
+@click.option('--patch', '-p', 'patch', flag_value=True,
+              help="Bump patch number", default=True)
 @click.option('--pre', help="Set pre-release identifier")
 @click.option('--build', help="Set build metadata")
 @click.argument('input', type=click.File('rb'), default="setup.py")
