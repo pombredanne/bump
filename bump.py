@@ -1,3 +1,4 @@
+from first import first
 import click
 import re
 
@@ -85,10 +86,12 @@ class SemVer(object):
               help="Bump patch number")
 @click.option('--pre', help="Set pre-release identifier")
 @click.option('--build', help="Set build metadata")
-@click.argument('input', type=click.File('rb'))
-@click.argument('output', type=click.File('wb'))
-def main(**kwargs):
-  version_string = kwargs['input'].read()
+@click.argument('input', type=click.File('rb'), default="setup.py")
+@click.argument('output', type=click.File('wb'), default="setup.py")
+def main(input, output, **kwargs):
+  contents = input.read()
+  pattern = r'(\n__version__ ?= ?[\'"])(.+?)([\'"]\n)'
+  version_string = first(re.findall(pattern, contents))[1]
   version = SemVer.parse(version_string)
   version.bump(**kwargs)
   click.echo(version)

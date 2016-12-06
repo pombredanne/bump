@@ -20,6 +20,6 @@ setup(
   keywords='bump increment package version',
   zip_safe=False,
   py_modules=['bump'],
-  install_requires=['click>=2,<3'],
+  install_requires=['click>=2,<3', 'first'],
   # entry_points=dict(console_scripts=['bump = bump:main']),
 )
