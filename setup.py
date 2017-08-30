@@ -21,5 +21,9 @@ setup(
     zip_safe=False,
     py_modules=['bump'],
     install_requires=['click>=2,<3', 'first'],
-    # entry_points=dict(console_scripts=['bump = bump:main']),
+    entry_points={
+        'console_scripts': [
+            'bump = bump:main'
+        ],
+    },
 )
