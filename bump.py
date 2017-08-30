@@ -7,19 +7,15 @@ pattern = re.compile(r"((?:__)?version(?:__)? ?= ?[\"'])(.+?)([\"'])")
 
 class SemVer(object):
 
-    __slots__ = [
-        'major',
-        'minor',
-        'patch',
-        'pre',
-        'build',
-    ]
-
-    def __init__(self, **kwargs):
-        for n in self.__slots__:
-            setattr(self, n, kwargs.get(n))
+    def __init__(self, major=0, minor=0, patch=0, pre=None, build=None):
+        self.major = major
+        self.minor = minor
+        self.patch = patch
+        self.pre = pre
+        self.build = build
 
     def __repr__(self):
+        # TODO: this is broken
         return "<SemVer {}>".format(
             ", ".join([
                 "{}={}".format(n, getattr(self, n))
@@ -71,12 +67,16 @@ class SemVer(object):
     def bump(self, major=False, minor=False, patch=False, pre=None, build=None):
         if major:
             self.major += 1
-        elif minor:
+        if minor:
             self.minor += 1
-        elif patch:
+        if patch:
             self.patch += 1
-        self.pre = pre
-        self.build = build
+        if pre:
+            self.pre = pre
+        if build:
+            self.build = build
+        if not (major or minor or patch or pre or build):
+            self.patch += 1
 
 
 def find_version(input_string):
