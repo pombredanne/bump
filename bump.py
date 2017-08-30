@@ -51,7 +51,7 @@ class SemVer(object):
         major_split = version.split('.', 1)
         if len(major_split) > 1:
             major, version = major_split
-            minor_split = version.split(b'.', 1)
+            minor_split = version.split('.', 1)
             if len(minor_split) > 1:
                 minor, version = minor_split
                 if version:
@@ -68,7 +68,7 @@ class SemVer(object):
             build=build,
         )
 
-    def bump(self, major, minor, patch, pre=None, build=None, **kwargs):
+    def bump(self, major=False, minor=False, patch=False, pre=None, build=None):
         if major:
             self.major += 1
         elif minor:
