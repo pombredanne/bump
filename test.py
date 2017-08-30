@@ -1,6 +1,6 @@
 import unittest
 
-from bump import SemVer
+from bump import SemVer, find_version
 
 from click.testing import CliRunner
 
@@ -56,6 +56,14 @@ class TestBump(unittest.TestCase):
 
     def test_cli(self):
         runner = CliRunner()  # noqa
+
+    def test_find_version(self):
+        assert find_version('__version__ = "1.2.3"') == '1.2.3'
+        assert find_version("__version__ = '1.2.3'") == '1.2.3'
+        assert find_version('__version__="1.2.3"') == '1.2.3'
+        assert find_version("__version__='1.2.3'") == '1.2.3'
+        assert find_version("    version='1.2.3',") == '1.2.3'
+        assert find_version('    version="1.2.3",') == '1.2.3'
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@ from first import first
 import click
 import re
 
-VALID_TEXT = re.compile('^[0-9A-Za-z\-\.]$')
+pattern = re.compile(r"((?:__)?version(?:__)? ?= ?[\"'])(.+?)([\"'])")
 
 
 class SemVer(object):
@@ -79,6 +79,10 @@ class SemVer(object):
         self.build = build
 
 
+def find_version(input_string):
+    return first(pattern.findall(input_string))[1]
+
+
 @click.command()
 @click.option('--major', '-M', 'major', flag_value=True,
               help="Bump major number", default=False)
@@ -91,12 +95,12 @@ class SemVer(object):
 @click.argument('input', type=click.File('rb'), default="setup.py")
 @click.argument('output', type=click.File('wb'), default="setup.py")
 def main(input, output, **kwargs):
-    contents = input.read()
-    pattern = r'(\n__version__ ?= ?[\'"])(.+?)([\'"]\n)'
-    version_string = first(re.findall(pattern, contents))[1]
+    contents = input.read().decode('utf-8')
+    version_string = find_version(contents)
     version = SemVer.parse(version_string)
     version.bump(**kwargs)
-    output.write(re.sub(pattern, r"\g<1>{}\g<3>".format(version), contents))
+    new = pattern.sub(r"\g<1>{}\g<3>".format(version), contents)
+    output.write(new.encode())
     click.echo(version)
 
 
