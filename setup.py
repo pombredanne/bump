@@ -5,7 +5,7 @@ setup(
     name='bump',
     version='1.0.0',
     description='Bumps package version numbers',
-    # long_description=open('README.rst').read(),
+    long_description=open('README.rst').read(),
     license='MIT',
     url='https://github.com/di/bump',
     author='Mark Steve Samson',
