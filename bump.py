@@ -7,12 +7,12 @@ pattern = re.compile(r"((?:__)?version(?:__)? ?= ?[\"'])(.+?)([\"'])")
 
 class SemVer(object):
 
-    def __init__(self, major=0, minor=0, patch=0, pre=None, build=None):
+    def __init__(self, major=0, minor=0, patch=0, pre=None, local=None):
         self.major = major
         self.minor = minor
         self.patch = patch
         self.pre = pre
-        self.build = build
+        self.local = local
 
     def __repr__(self):
         # TODO: this is broken
@@ -30,17 +30,17 @@ class SemVer(object):
         ))
         if self.pre:
             version_string += '-' + self.pre
-        if self.build:
-            version_string += '+' + self.build
+        if self.local:
+            version_string += '+' + self.local
         return version_string
 
     @classmethod
     def parse(cls, version):
         major = minor = patch = 0
-        build = pre = None
-        build_split = version.split('+')
-        if len(build_split) > 1:
-            version, build = build_split
+        local = pre = None
+        local_split = version.split('+')
+        if len(local_split) > 1:
+            version, local = local_split
         pre_split = version.split('-', 1)
         if len(pre_split) > 1:
             version, pre = pre_split
@@ -61,10 +61,10 @@ class SemVer(object):
             minor=int(minor),
             patch=int(patch),
             pre=pre,
-            build=build,
+            local=local,
         )
 
-    def bump(self, major=False, minor=False, patch=False, pre=None, build=None):
+    def bump(self, major=False, minor=False, patch=False, pre=None, local=None):
         if major:
             self.major += 1
         if minor:
@@ -73,9 +73,9 @@ class SemVer(object):
             self.patch += 1
         if pre:
             self.pre = pre
-        if build:
-            self.build = build
-        if not (major or minor or patch or pre or build):
+        if local:
+            self.local = local
+        if not (major or minor or patch or pre or local):
             self.patch += 1
 
 
@@ -96,8 +96,8 @@ def find_version(input_string):
     '--patch', '-p', 'patch', flag_value=True, default=True,
     help='Bump patch number',
 )
-@click.option('--pre', help='Set pre-release identifier')
-@click.option('--build', help='Set build metadata')
+@click.option('--pre', help='Set the pre-release identifier')
+@click.option('--local', help='Set the local version segment')
 @click.argument('input', type=click.File('rb'), default='setup.py')
 @click.argument('output', type=click.File('wb'), default='setup.py')
 def main(input, output, **kwargs):

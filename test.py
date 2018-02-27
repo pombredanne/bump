@@ -7,39 +7,39 @@ from click.testing import CliRunner
 
 class TestBump(unittest.TestCase):
 
-    def check_version(self, version, major, minor, patch, pre, build):
+    def check_version(self, version, major, minor, patch, pre, local):
         assert version.major == major
         assert version.minor == minor
         assert version.patch == patch
         assert version.pre == pre
-        assert version.build == build
+        assert version.local == local
 
     def test_parse(self):
-        version = SemVer.parse("1")
+        version = SemVer.parse('1')
         self.check_version(version, 1, 0, 0, None, None)
 
-        version = SemVer.parse("1.2")
+        version = SemVer.parse('1.2')
         self.check_version(version, 1, 2, 0, None, None)
 
-        version = SemVer.parse("1.2.3")
+        version = SemVer.parse('1.2.3')
         self.check_version(version, 1, 2, 3, None, None)
 
-        version = SemVer.parse("1.2.3-pre")
-        self.check_version(version, 1, 2, 3, "pre", None)
+        version = SemVer.parse('1.2.3-pre')
+        self.check_version(version, 1, 2, 3, 'pre', None)
 
-        version = SemVer.parse("1.2.3+build")
-        self.check_version(version, 1, 2, 3, None, "build")
+        version = SemVer.parse('1.2.3+local')
+        self.check_version(version, 1, 2, 3, None, 'local')
 
-        version = SemVer.parse("1.2.3-pre+build")
-        self.check_version(version, 1, 2, 3, "pre", "build")
+        version = SemVer.parse('1.2.3-pre+local')
+        self.check_version(version, 1, 2, 3, 'pre', 'local')
 
     def test_str(self):
-        assert str(SemVer.parse("1")) == "1.0.0"
-        assert str(SemVer.parse("1.2")) == "1.2.0"
-        assert str(SemVer.parse("1.2.3")) == "1.2.3"
-        assert str(SemVer.parse("1.2.3-pre")) == "1.2.3-pre"
-        assert str(SemVer.parse("1.2.3+build")) == "1.2.3+build"
-        assert str(SemVer.parse("1.2.3-pre+build")) == "1.2.3-pre+build"
+        assert str(SemVer.parse('1')) == '1.0.0'
+        assert str(SemVer.parse('1.2')) == '1.2.0'
+        assert str(SemVer.parse('1.2.3')) == '1.2.3'
+        assert str(SemVer.parse('1.2.3-pre')) == '1.2.3-pre'
+        assert str(SemVer.parse('1.2.3+local')) == '1.2.3+local'
+        assert str(SemVer.parse('1.2.3-pre+local')) == '1.2.3-pre+local'
 
     def test_bump(self):
         version = SemVer(major=1, minor=2, patch=3)
@@ -55,20 +55,20 @@ class TestBump(unittest.TestCase):
         self.check_version(version, 1, 2, 4, None, None)
 
         version = SemVer(major=1, minor=2, patch=3)
-        version.bump(pre="pre")
-        self.check_version(version, 1, 2, 3, "pre", None)
+        version.bump(pre='pre')
+        self.check_version(version, 1, 2, 3, 'pre', None)
 
         version = SemVer(major=1, minor=2, patch=3)
-        version.bump(build="build")
-        self.check_version(version, 1, 2, 3, None, "build")
+        version.bump(local='local')
+        self.check_version(version, 1, 2, 3, None, 'local')
 
         version = SemVer(major=1, pre='pre')
         version.bump()
         self.check_version(version, 1, 0, 1, 'pre', None)
 
-        version = SemVer(major=1, build='build')
+        version = SemVer(major=1, local='local')
         version.bump()
-        self.check_version(version, 1, 0, 1, None, "build")
+        self.check_version(version, 1, 0, 1, None, 'local')
 
     def test_cli(self):
         runner = CliRunner()  # noqa
