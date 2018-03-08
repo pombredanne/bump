@@ -1,6 +1,8 @@
-from first import first
-import click
 import re
+import sys
+
+import click
+from first import first
 
 pattern = re.compile(r"((?:__)?version(?:__)? ?= ?[\"'])(.+?)([\"'])")
 
@@ -79,8 +81,15 @@ class SemVer(object):
             self.patch += 1
 
 
+class NoVersionFound(Exception):
+    pass
+
+
 def find_version(input_string):
-    return first(pattern.findall(input_string))[1]
+    match = first(pattern.findall(input_string))
+    if match is None:
+        raise NoVersionFound
+    return match[1]
 
 
 @click.command()
@@ -102,7 +111,13 @@ def find_version(input_string):
 @click.argument('output', type=click.File('wb'), default=None, required=False)
 def main(input, output, **kwargs):
     contents = input.read().decode('utf-8')
-    version_string = find_version(contents)
+
+    try:
+        version_string = find_version(contents)
+    except NoVersionFound:
+        click.echo('No version found in ./{}.'.format(input.name))
+        sys.exit(1)
+
     version = SemVer.parse(version_string)
     version.bump(**kwargs)
     new = pattern.sub('\g<1>{}\g<3>'.format(version), contents)
