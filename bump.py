@@ -7,6 +7,7 @@ except ImportError:  # 2.7
 
 import click
 from first import first
+from packaging.utils import canonicalize_version
 
 pattern = re.compile(r"((?:__)?version(?:__)? ?= ?[\"'])(.+?)([\"'])")
 
@@ -111,9 +112,13 @@ def find_version(input_string):
 )
 @click.option('--pre', help='Set the pre-release identifier')
 @click.option('--local', help='Set the local version segment')
+@click.option(
+    '--canonicalize', flag_value=True, default=None,
+    help='Canonicalize the new version',
+)
 @click.argument('input', type=click.File('rb'), default=None, required=False)
 @click.argument('output', type=click.File('wb'), default=None, required=False)
-def main(input, output, major, minor, patch, pre, local):
+def main(input, output, major, minor, patch, pre, local, canonicalize):
 
     config = configparser.RawConfigParser()
     config.read(['.bump', 'setup.cfg'])
@@ -126,6 +131,10 @@ def main(input, output, major, minor, patch, pre, local):
         click.File('rb')(config.get('bump', 'input', fallback='setup.py'))
     )
     output = output or click.File('wb')(input.name)
+    canonicalize = (
+        canonicalize or
+        config.get('bump', 'canonicalize', fallback=False)
+    )
 
     contents = input.read().decode('utf-8')
     try:
@@ -136,9 +145,12 @@ def main(input, output, major, minor, patch, pre, local):
 
     version = SemVer.parse(version_string)
     version.bump(major, minor, patch, pre, local)
-    new = pattern.sub('\g<1>{}\g<3>'.format(version), contents)
+    version_string = str(version)
+    if canonicalize:
+        version_string = canonicalize_version(version_string)
+    new = pattern.sub('\g<1>{}\g<3>'.format(version_string), contents)
     output.write(new.encode())
-    click.echo(version)
+    click.echo(version_string)
 
 
 if __name__ == '__main__':

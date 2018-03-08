@@ -42,12 +42,13 @@ the pre-release identifier or local version segment::
   Usage: bump [OPTIONS] [INPUT] [OUTPUT]
 
   Options:
-    -M, --major   Bump major number
-    -m, --minor   Bump minor number
-    -p, --patch   Bump patch number
-    --pre TEXT    Set the pre-release identifier
-    --local TEXT  Set the local version segment
-    --help        Show this message and exit.
+    -M, --major     Bump major number
+    -m, --minor     Bump minor number
+    -p, --patch     Bump patch number
+    --pre TEXT      Set the pre-release identifier
+    --local TEXT    Set the local version segment
+    --canonicalize  Canonicalize the new version
+    --help          Show this message and exit.
 
 You can configure these options by setting them in a ``.bump`` or ``setup.cfg``
 configuration file as well, so you don't have to specify them every time::
