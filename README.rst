@@ -48,3 +48,12 @@ the pre-release identifier or local version segment::
     --pre TEXT    Set the pre-release identifier
     --local TEXT  Set the local version segment
     --help        Show this message and exit.
+
+You can configure these options by setting them in a ``.bump`` or ``setup.cfg``
+configuration file as well, so you don't have to specify them every time::
+
+  $ cat .bump
+  [bump]
+  input = some_directory/__file__.py
+  minor = true
+  patch = false

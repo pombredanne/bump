@@ -1,5 +1,9 @@
 import re
 import sys
+try:
+    import configparser
+except ImportError:  # 2.7
+    import ConfigParser as configparser
 
 import click
 from first import first
@@ -94,24 +98,36 @@ def find_version(input_string):
 
 @click.command()
 @click.option(
-    '--major', '-M', 'major', flag_value=True, default=False,
+    '--major', '-M', 'major', flag_value=True, default=None,
     help='Bump major number',
 )
 @click.option(
-    '--minor', '-m', 'minor', flag_value=True, default=False,
+    '--minor', '-m', 'minor', flag_value=True, default=None,
     help='Bump minor number',
 )
 @click.option(
-    '--patch', '-p', 'patch', flag_value=True, default=True,
+    '--patch', '-p', 'patch', flag_value=True, default=None,
     help='Bump patch number',
 )
 @click.option('--pre', help='Set the pre-release identifier')
 @click.option('--local', help='Set the local version segment')
-@click.argument('input', type=click.File('rb'), default='setup.py')
+@click.argument('input', type=click.File('rb'), default=None, required=False)
 @click.argument('output', type=click.File('wb'), default=None, required=False)
-def main(input, output, **kwargs):
-    contents = input.read().decode('utf-8')
+def main(input, output, major, minor, patch, pre, local):
 
+    config = configparser.RawConfigParser()
+    config.read(['.bump', 'setup.cfg'])
+
+    major = major or config.getboolean('bump', 'major', fallback=False)
+    minor = minor or config.getboolean('bump', 'minor', fallback=False)
+    patch = patch or config.getboolean('bump', 'patch', fallback=True)
+    input = (
+        input or
+        click.File('rb')(config.get('bump', 'input', fallback='setup.py'))
+    )
+    output = output or click.File('wb')(input.name)
+
+    contents = input.read().decode('utf-8')
     try:
         version_string = find_version(contents)
     except NoVersionFound:
@@ -119,9 +135,8 @@ def main(input, output, **kwargs):
         sys.exit(1)
 
     version = SemVer.parse(version_string)
-    version.bump(**kwargs)
+    version.bump(major, minor, patch, pre, local)
     new = pattern.sub('\g<1>{}\g<3>'.format(version), contents)
-    output = output or click.File('wb')(input.name)
     output.write(new.encode())
     click.echo(version)
 
