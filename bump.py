@@ -99,13 +99,14 @@ def find_version(input_string):
 @click.option('--pre', help='Set the pre-release identifier')
 @click.option('--local', help='Set the local version segment')
 @click.argument('input', type=click.File('rb'), default='setup.py')
-@click.argument('output', type=click.File('wb'), default='setup.py')
+@click.argument('output', type=click.File('wb'), default=None, required=False)
 def main(input, output, **kwargs):
     contents = input.read().decode('utf-8')
     version_string = find_version(contents)
     version = SemVer.parse(version_string)
     version.bump(**kwargs)
     new = pattern.sub('\g<1>{}\g<3>'.format(version), contents)
+    output = output or click.File('wb')(input.name)
     output.write(new.encode())
     click.echo(version)
 
