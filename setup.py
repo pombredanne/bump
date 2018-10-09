@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='bump',
-    version='1.0.0',
+    version='1.1.0',
     description='Bumps package version numbers',
     long_description=open('README.rst').read(),
     license='MIT',
@@ -20,7 +20,7 @@ setup(
     keywords='bump increment package version',
     zip_safe=False,
     py_modules=['bump'],
-    install_requires=['click>=6,<7', 'first'],
+    install_requires=['click>=6,<7', 'first', 'packaging>=17.1'],
     entry_points={
         'console_scripts': [
             'bump = bump:main'

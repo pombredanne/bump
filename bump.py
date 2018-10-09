@@ -1,6 +1,13 @@
-from first import first
-import click
 import re
+import sys
+try:
+    import configparser
+except ImportError:  # 2.7
+    import ConfigParser as configparser
+
+import click
+from first import first
+from packaging.utils import canonicalize_version
 
 pattern = re.compile(r"((?:__)?version(?:__)? ?= ?[\"'])(.+?)([\"'])")
 
@@ -79,35 +86,71 @@ class SemVer(object):
             self.patch += 1
 
 
+class NoVersionFound(Exception):
+    pass
+
+
 def find_version(input_string):
-    return first(pattern.findall(input_string))[1]
+    match = first(pattern.findall(input_string))
+    if match is None:
+        raise NoVersionFound
+    return match[1]
 
 
 @click.command()
 @click.option(
-    '--major', '-M', 'major', flag_value=True, default=False,
+    '--major', '-M', 'major', flag_value=True, default=None,
     help='Bump major number',
 )
 @click.option(
-    '--minor', '-m', 'minor', flag_value=True, default=False,
+    '--minor', '-m', 'minor', flag_value=True, default=None,
     help='Bump minor number',
 )
 @click.option(
-    '--patch', '-p', 'patch', flag_value=True, default=True,
+    '--patch', '-p', 'patch', flag_value=True, default=None,
     help='Bump patch number',
 )
 @click.option('--pre', help='Set the pre-release identifier')
 @click.option('--local', help='Set the local version segment')
-@click.argument('input', type=click.File('rb'), default='setup.py')
-@click.argument('output', type=click.File('wb'), default='setup.py')
-def main(input, output, **kwargs):
+@click.option(
+    '--canonicalize', flag_value=True, default=None,
+    help='Canonicalize the new version',
+)
+@click.argument('input', type=click.File('rb'), default=None, required=False)
+@click.argument('output', type=click.File('wb'), default=None, required=False)
+def main(input, output, major, minor, patch, pre, local, canonicalize):
+
+    config = configparser.RawConfigParser()
+    config.read(['.bump', 'setup.cfg'])
+
+    major = major or config.getboolean('bump', 'major', fallback=False)
+    minor = minor or config.getboolean('bump', 'minor', fallback=False)
+    patch = patch or config.getboolean('bump', 'patch', fallback=True)
+    input = (
+        input or
+        click.File('rb')(config.get('bump', 'input', fallback='setup.py'))
+    )
+    output = output or click.File('wb')(input.name)
+    canonicalize = (
+        canonicalize or
+        config.get('bump', 'canonicalize', fallback=False)
+    )
+
     contents = input.read().decode('utf-8')
-    version_string = find_version(contents)
+    try:
+        version_string = find_version(contents)
+    except NoVersionFound:
+        click.echo('No version found in ./{}.'.format(input.name))
+        sys.exit(1)
+
     version = SemVer.parse(version_string)
-    version.bump(**kwargs)
-    new = pattern.sub('\g<1>{}\g<3>'.format(version), contents)
+    version.bump(major, minor, patch, pre, local)
+    version_string = str(version)
+    if canonicalize:
+        version_string = canonicalize_version(version_string)
+    new = pattern.sub('\g<1>{}\g<3>'.format(version_string), contents)
     output.write(new.encode())
-    click.echo(version)
+    click.echo(version_string)
 
 
 if __name__ == '__main__':
