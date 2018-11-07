@@ -21,6 +21,11 @@ setup(
     keywords="bump increment package version",
     zip_safe=False,
     py_modules=["bump"],
-    install_requires=["click>=6,<7", "first", "packaging>=17.1"],
+    install_requires=[
+        "click>=6,<7",
+        "configparser ; python_version<'3'",
+        "first",
+        "packaging>=17.1",
+    ],
     entry_points={"console_scripts": ["bump = bump:main"]},
 )
