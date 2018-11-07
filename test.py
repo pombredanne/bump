@@ -85,7 +85,9 @@ def test_bump_no_args_retains_local():
 
 
 def test_cli():
-    runner = CliRunner()  # noqa
+    runner = CliRunner()
+    result = runner.invoke(main)
+    assert result.exit_code == 0
 
 
 @pytest.mark.parametrize(
