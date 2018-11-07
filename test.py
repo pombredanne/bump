@@ -1,7 +1,7 @@
 import pytest
 from click.testing import CliRunner
 
-from bump import SemVer, find_version
+from bump import SemVer, find_version, main
 
 
 def check_version(version, major, minor, patch, pre, local):
