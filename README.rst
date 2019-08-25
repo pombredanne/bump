@@ -1,40 +1,60 @@
 bump
 ====
 
-Bumps package versions
+Bumps package versions.
 
-Usage:
-------
+Example
+=======
 
-Bump patch version ::
+By default, running ``bump`` in a directory with a ``setup.py`` will bump the
+"patch" number in place::
 
-    $ bump setup.py
-    1.0.2 => 1.0.3
-    Is this ok? y/n y
-    Updated setup.py
+  $ bump
+  1.0.1
+  $ git diff setup.py
+  ─────────────────────────────────────────────────
+  modified: setup.py
+  ─────────────────────────────────────────────────
+  @ setup.py:6 @ from setuptools import setup
 
-Bump minor version ::
+  setup(
+      name='bump',
+  -    version='1.0.0',
+  +    version='1.0.1',
+      description='Bumps package version numbers',
+      long_description=open('README.rst').read(),
+      license='MIT',
 
-    $ bump setup.py -m
-    1.0.3 => 1.1.0
-    Is this ok? y/n y
-    Updated setup.py
+Conveniently ``bump`` will also return the new version number, so you can use
+it after running the command, for example::
 
-Bump major version ::
+  $ export VERSION=`bump`
+  $ echo "The new version is $VERSION"
+  The new version is 1.0.1
 
-    $ bump setup.py -M
-    1.1.0 => 2.0.0
-    Is this ok? y/n y
-    Updated setup.py
+Options
+=======
 
-Add suffix ::
-    
-    $ bump setup.py -M -s=-rc
-    2.0.0 => 3.0.0-rc
-    Is this ok? y/n y
-    Updated setup.py
+The ``bump`` command can also bump the major or minor version numbers, or set
+the pre-release identifier or local version segment::
 
-Quiet mode ::
+  $ bump --help
+  Usage: bump [OPTIONS] [INPUT] [OUTPUT]
 
-    $ bump setup.py -q
-    3.0.1-rc
+  Options:
+    -M, --major     Bump major number
+    -m, --minor     Bump minor number
+    -p, --patch     Bump patch number
+    --pre TEXT      Set the pre-release identifier
+    --local TEXT    Set the local version segment
+    --canonicalize  Canonicalize the new version
+    --help          Show this message and exit.
+
+You can configure these options by setting them in a ``.bump`` or ``setup.cfg``
+configuration file as well, so you don't have to specify them every time::
+
+  $ cat .bump
+  [bump]
+  input = some_directory/__file__.py
+  minor = true
+  patch = false

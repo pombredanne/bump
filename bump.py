@@ -1,132 +1,137 @@
-#!/usr/bin/env python
-
-from __future__ import print_function
-
-import argparse
 import re
 import sys
 
+try:
+    import configparser
+except ImportError:  # 2.7
+    import ConfigParser as configparser
 
-IS_PY3 = sys.version_info[0] == 3
+import click
+from first import first
+from packaging.utils import canonicalize_version
 
-
-def get_args():
-    """Parse and return args"""
-
-    parser = argparse.ArgumentParser(
-        prog='bump',
-        description="Bumps package versions")
-    parser.add_argument('files', help='Files to update', nargs='+')
-    parser.add_argument('-M', dest='version', action='store_const',
-                        const='major', help="Bump major version")
-    parser.add_argument('-m', dest='version', action='store_const',
-                        const='minor', help="Bump minor version")
-    parser.add_argument('-b', dest='version', action='store_const',
-                        const='patch', help="Bump patch version")
-    parser.add_argument('-s', dest='suffix', type=str,
-                        help="Update suffix")
-    parser.add_argument('-q', dest='quiet', action='store_true',
-                        help="Quiet mode: bumps without confirmation and only"
-                             "the bumped version number is printed")
-
-    return parser.parse_args()
+pattern = re.compile(r"((?:__)?version(?:__)? ?= ?[\"'])(.+?)([\"'])")
 
 
-def bump_version(version_string, version, suffix):
-    """
-    Bumps a version.
-    Returns bumped version string or None if version string is invalid.
-    """
-    match = re.search('([0-9\.]+)([^0-9\.]*)', version_string)
-    version_string = match.group(1)
-    curr_suffix = match.group(2)
-    try:
-        versions = list(map(int, version_string.split('.')))
-    except ValueError:
-        pass
-    else:
-        while len(versions) < 3:
-            versions += [0]
-        if version == 'major':
-            versions = versions[0] + 1, 0, 0
-        elif version == 'minor':
-            versions = versions[0], versions[1] + 1, 0
-        elif version == 'patch' or suffix is None:
-            versions = versions[0], versions[1], versions[2] + 1
-        if suffix is None:
-            suffix = curr_suffix
-        return '.'.join(map(str, versions)) + suffix
+class SemVer(object):
+    def __init__(self, major=0, minor=0, patch=0, pre=None, local=None):
+        self.major = major
+        self.minor = minor
+        self.patch = patch
+        self.pre = pre
+        self.local = local
 
+    def __repr__(self):
+        # TODO: this is broken
+        return "<SemVer {}>".format(
+            ", ".join(["{}={}".format(n, getattr(self, n)) for n in self.__slots__])
+        )
 
-def get_matches(files, version, suffix=None):
-    """Returns dict of version definition matches"""
+    def __str__(self):
+        version_string = ".".join(map(str, [self.major, self.minor, self.patch]))
+        if self.pre:
+            version_string += "-" + self.pre
+        if self.local:
+            version_string += "+" + self.local
+        return version_string
 
-    matches = {}
-
-    for filename in files:
-        with open(filename, 'rb') as f:
-            match = re.search(
-                '\s*[\'"]?version[\'"]?\s*[=:]\s*[\'"]?([^\'",]+)[\'"]?',
-                f.read().decode('utf-8'), re.I)
-
-        if match:
-            version_string = match.group(1)
-            bumped_version_string = bump_version(version_string, version,
-                                                 suffix)
-
-            if not bumped_version_string:
-                print("Invalid version string in {}: {}"
-                      .format(filename, version_string))
-                continue
-
-            matches[filename] = dict(
-                match=match,
-                version_string=version_string,
-                bumped_version_string=bumped_version_string)
-
-        else:
-            print("No version definition found in", filename)
-
-    return matches
-
-
-def main():
-    args = get_args().__dict__
-    quiet = args.pop('quiet')
-    matches = get_matches(**args)
-
-    if len(matches) < 1:
-        exit(1)
-
-    if not quiet:
-
-        # Print bumps
-        for filename, match in matches.items():
-            print("{}: {} => {}".format(filename, match['version_string'],
-                                        match['bumped_version_string']))
-
-        # Confirm update
-        __input = input if IS_PY3 else raw_input
-        if __input("Is this ok? y/n ").lower() != 'y':
-            print("Cancelled")
-            exit(1)
-
-    # Update files
-    for filename, match in matches.items():
-        with open(filename, 'wb') as f:
-            bumped_version_string = match['bumped_version_string']
-            content = (bytes(match['match'].string, 'utf-8') if IS_PY3 else
-                       match['match'].string)
-            if IS_PY3:
-                bumped_version_string = bytes(bumped_version_string, 'utf-8')
-            f.write(content[:match['match'].start(1)] +
-                    bumped_version_string + content[match['match'].end(1):])
-
-            if quiet:
-                print(bumped_version_string)
+    @classmethod
+    def parse(cls, version):
+        major = minor = patch = 0
+        local = pre = None
+        local_split = version.split("+")
+        if len(local_split) > 1:
+            version, local = local_split
+        pre_split = version.split("-", 1)
+        if len(pre_split) > 1:
+            version, pre = pre_split
+        major_split = version.split(".", 1)
+        if len(major_split) > 1:
+            major, version = major_split
+            minor_split = version.split(".", 1)
+            if len(minor_split) > 1:
+                minor, version = minor_split
+                if version:
+                    patch = version
             else:
-                print("Updated", filename)
+                minor = version
+        else:
+            major = version
+        return cls(
+            major=int(major), minor=int(minor), patch=int(patch), pre=pre, local=local
+        )
+
+    def bump(self, major=False, minor=False, patch=False, pre=None, local=None):
+        if major:
+            self.major += 1
+        if minor:
+            self.minor += 1
+        if patch:
+            self.patch += 1
+        if pre:
+            self.pre = pre
+        if local:
+            self.local = local
+        if not (major or minor or patch or pre or local):
+            self.patch += 1
 
 
-if __name__ == '__main__':
+class NoVersionFound(Exception):
+    pass
+
+
+def find_version(input_string):
+    match = first(pattern.findall(input_string))
+    if match is None:
+        raise NoVersionFound
+    return match[1]
+
+
+@click.command()
+@click.option(
+    "--major", "-M", "major", flag_value=True, default=None, help="Bump major number"
+)
+@click.option(
+    "--minor", "-m", "minor", flag_value=True, default=None, help="Bump minor number"
+)
+@click.option(
+    "--patch", "-p", "patch", flag_value=True, default=None, help="Bump patch number"
+)
+@click.option("--pre", help="Set the pre-release identifier")
+@click.option("--local", help="Set the local version segment")
+@click.option(
+    "--canonicalize", flag_value=True, default=None, help="Canonicalize the new version"
+)
+@click.argument("input", type=click.File("rb"), default=None, required=False)
+@click.argument("output", type=click.File("wb"), default=None, required=False)
+def main(input, output, major, minor, patch, pre, local, canonicalize):
+
+    config = configparser.RawConfigParser()
+    config.read([".bump", "setup.cfg"])
+
+    major = major or config.getboolean("bump", "major", fallback=False)
+    minor = minor or config.getboolean("bump", "minor", fallback=False)
+    patch = patch or config.getboolean("bump", "patch", fallback=True)
+    input = input or click.File("rb")(config.get("bump", "input", fallback="setup.py"))
+    output = output or click.File("wb")(input.name)
+    canonicalize = canonicalize or config.get("bump", "canonicalize", fallback=False)
+
+    contents = input.read().decode("utf-8")
+    try:
+        version_string = find_version(contents)
+    except NoVersionFound:
+        click.echo("No version found in ./{}.".format(input.name))
+        sys.exit(1)
+
+    version = SemVer.parse(version_string)
+    version.bump(major, minor, patch, pre, local)
+    version_string = str(version)
+    if canonicalize:
+        version_string = canonicalize_version(version_string)
+    new = pattern.sub("\g<1>{}\g<3>".format(version_string), contents)
+    output.write(new.encode())
+    click.echo(version_string)
+
+
+if __name__ == "__main__":
     main()
